@@ -57,3 +57,5 @@ function listaConteudo(int $id, PDO $con)
     }
     echo '</ul>';
 }
+
+listaConteudo(99901, $con);
