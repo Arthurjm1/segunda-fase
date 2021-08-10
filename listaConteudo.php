@@ -2,35 +2,33 @@
 
 include 'phpconectamysql.php';
 
-function criaArvore($lista, $pai_id)
-{
-    $galho = [];
-    foreach ($lista as $conteudo) {
-        if ($conteudo['ConteudoID'] == $pai_id) {
-            array_push($galho, $conteudo);
-            criaArvore($lista, $conteudo);
+function criaArvore($resultados, $pai_id)
+{    
+    $arvore = [];    
+    foreach($resultados as $conteudo){               
+        if($conteudo['ConteudoID'] == $pai_id){                        
+            $filhos = criaArvore($resultados, $conteudo['ID']);
+            if($filhos){
+                $conteudo['filhos'] = $filhos;
+            }
+            $arvore[] = $conteudo;            
         }
-    }
-
-    return ($galho);
+    }       
+    return $arvore;
 }
 
-function criarLista($galho)
+function criaLista($arvore)
 {
-    $li = '';
-    if (isset($galho['Titulo'])) {
-        $li .= '<li><a>' . $galho['Titulo'] . '</a>';
-    }
-    if (isset($galho['filhos']) && isset($galho['Titulo'])) {
-        $li .= '<ul>';
-        foreach ($galho['filhos'] as $filho) {
-            $li .= criarLista($filho);
+    $li = '<ul>';
+    foreach($arvore as $conteudo){
+        $li .= "<li><a href='#'>".$conteudo['Titulo'].'</a>';
+        if(isset($conteudo['filhos'])){
+            $li .=  criaLista($conteudo['filhos']);
         }
-        $li .= '</ul>';
+        $li .= '</li>';
     }
-    $li .= '</li>';
-
-    return $li;   
+    $li .= '</ul>';
+    return $li;
 }
 
 function listaConteudo(int $id, PDO $con)
@@ -38,24 +36,13 @@ function listaConteudo(int $id, PDO $con)
     $query = 'SELECT ID, Titulo, imobiliariaID, ConteudoID FROM conteudo WHERE imobiliariaID = ' . $id;
     $stmt = $con->prepare($query);
     $stmt->execute();
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $arvore = [];   
-    foreach ($result as $conteudo) {
-        if ($conteudo['ConteudoID'] == 0) {
-            $arvore[$conteudo['ID']] = $conteudo;
-            $arvore[$conteudo['ID']]['filhos'] = [];
-        }
-    }
+    $arvore = [];
 
-    foreach ($result as $conteudo) {
-        $arvore[$conteudo['ID']]['filhos'] = criaArvore($result, $conteudo['ID']);
-    }
-    echo '<ul>';
-    foreach ($arvore as $galho) {
-        echo criarLista($galho);
-    }
-    echo '</ul>';
+    $arvore = criaArvore($resultados, 0);
+
+    echo criaLista($arvore);
 }
 
 listaConteudo(99901, $con);
